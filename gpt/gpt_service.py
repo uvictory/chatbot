@@ -1,8 +1,25 @@
 import openai
-from config import OPENAI_API_KEY, GPT_3_5_MODEL, GPT_4_MODEL
+import httpx
+from config import OPENAI_API_KEY, GPT_3_5_MODEL, GPT_4_MODEL, OPENAI_API_BASE
 
 # OpenAI API 키 설정
 openai.api_key = OPENAI_API_KEY
+
+# GPT에 메시지 전송 함수
+async def ask_gpt(message: str) -> str:
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_BASE}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model" : GPT_3_5_MODEL,
+        "messages": [{"role": "user", "content": message}],
+        "temperature" : 0.7
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post
+
 
 def get_chat_response(user_input: str, context: str):
     """
