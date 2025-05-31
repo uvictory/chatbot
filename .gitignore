@@ -26,10 +26,3 @@ Thumbs.db
 *.db
 *.tmp
 *.bak
-
-# Open API 키 관련 (예: 환경변수 파일)
-secret.json
-open_api_key.txt
-config.json
-settings.yaml
-secrets/
