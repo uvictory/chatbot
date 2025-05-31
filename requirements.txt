@@ -1,0 +1,10 @@
+# 기존 항목
+Flask
+openai
+selenium
+
+# 추가
+fastapi
+uvicorn
+motor
+pydantic
