@@ -9,6 +9,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gpt.gpt_service import ask_gpt, ask_gpt_with_history
 from models import Policy
+from utils.embedding import get_embedding
+import json
 
 engine = create_engine("sqlite:///./welfare.db", connect_args={"check_same_thread": False})
 
@@ -116,3 +118,21 @@ def create_follow_up(db: Session, token: str, question_id: int, question_text: s
 
     return detail
 
+def update_policy_embedding(db: Session):
+    """
+    모든 정책(title)에 대한 임베딩을 생성하여 DB에 저장.
+    """
+    # 임베딩이 아직 되지 않은 정책만 조회
+    policies = db.query(Policy).filter(Policy.embedding == None).all()
+
+    for policy in policies:
+        try:
+
+            embedding = get_embedding(policy.title)
+            policy.embedding = json.dumps(embedding)
+            db.add(policy)
+        except Exception as e:
+            print(f"[ERROR] '{policy.title}' 임베딩 실패: {e}")
+    # 변경된 모든 객체를 커밋하여 DB에 저장
+    db.commit()
+    print(f"{len(policies)}개 정책에 임베딩 적용 완료")

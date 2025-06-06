@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey, Integer
+from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey, Integer, JSON
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 import uuid
@@ -21,6 +21,8 @@ class Policy(Base):
     created_at = Column(DateTime, default=datetime.utcnow)  # 생성일
     updated_at = Column(DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow) # 수정일
     is_delete = Column(Boolean, default=False) # soft delete 여부
+    embedding = Column(JSON, nullable=True) # 벡터 검색용 임베딩 저장
+
     #연관 테이블
     labels = relationship("Label", back_populates="policy", cascade="all, delete-orphan")
     images = relationship("Image", back_populates="policy", cascade="all, delete-orphan")

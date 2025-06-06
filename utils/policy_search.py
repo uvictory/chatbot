@@ -1,3 +1,13 @@
+from scipy.spatial.distance import cosine
+
+import json
+def cosine_similarity(v1: list[float], v2) -> float:
+    """
+    두 벡터의 코사인 유사도를 계산.
+    """
+    if isinstance(v2, str):
+        v2 = json.loads(v2)
+    return 1 - cosine(v1, v2)
 def get_policy_context(query: str) -> str:
     """
     향후 DB 또는 정책 문서 요약에서 질의와 관련된 내용을 불러오는 함수
