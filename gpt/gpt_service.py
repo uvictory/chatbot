@@ -23,29 +23,53 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 
+SYSTEM_PREINSERT = [
+    {
+        "role": "system",
+        "content": (
+            """
+You are an AI assistant specialized in providing information only about childbirth and pregnancy-related policies.  
+You must **only respond to questions** that are directly related to pregnancy, childbirth, parenting, or governmental support programs for parents.  
+If the user's question is ambiguous (e.g., asking generally about benefits by age), assume the user is asking about pregnancy/childbirth-related benefits **if possible**.
+If the user's question is unrelated, politely respond with:  
+**"죄송합니다. 해당 모델은 임산/출산 관련 정책만 대답 가능합니다."**  
+All answers should be concise and formatted using **Markdown**.
+
+When listing a policy, include:
+- **Policy title** as a Markdown link using the provided URL.
+- A brief summary in a bullet point.
+- Group similar policies if needed.
+
+Example format:
+- [출산지원금 정책](https://example.com/policy123): 산모와 신생아의 건강을 위한 출산 비용 지원.
+            """        
+        )
+    },
+]
 
 # GPT에 메시지 전송 함수
-def ask_gpt(user_input: str, context: Optional[str] = None) -> str:
+def ask_gpt(user_input: str, related: list, context: Optional[str] = None) -> str:
     """
     GPT에게 질문을 전잘하고 응답을 반환,
     context가 있을 경우 system 프로프트로 함께 보냅니다.
     """
     try:
-        messages = []
+        messages = SYSTEM_PREINSERT + []
+
+        # 관련 정책 조회 결과
+        lines = ["Here are the retrieved policies:\n"]
+        for idx, p in enumerate(related, start=1):
+            lines.append(f"{idx}. Title: {p['title']}\n   Summary: {p['summary']}\n URL: {p['url']}\n")
+        messages.append({ "role": "user", "content": "\n".join(lines) })
 
         if context:
             messages.append({"role": "system", "content": f"다음은 정책 요약입니다:\n{context}"})
         messages.append({"role": "user", "content": user_input})
 
-        # 질문 복잡도에 따라 GPT 모델 자동 선택
-        user_gpt4 = any(word in user_input for word in ["조건", "차이", "해석"])
-        model = GPT_4_MODEL if user_gpt4 else GPT_3_5_MODEL
-
         response = client.chat.completions.create(
-            model=model,
+            model=GPT_4_MODEL,
             messages=messages,
-            temperature=0.7,
-            max_tokens=500
+            temperature = 0.4
         )
         return response.choices[0].message.content.strip()
 
@@ -54,7 +78,7 @@ def ask_gpt(user_input: str, context: Optional[str] = None) -> str:
         return "GPT 응답 생성 실패"
 
 
-def ask_gpt_with_history(history: list, new_question: str) -> str:
+def ask_gpt_with_history(history: list, related: list, new_question: str) -> str:
     """
     이전 대화 이력(history)와 새 질문을 함께 GPT에게 전달하여 응답을 받는 함수.
     :param history: [{"role": "user"/"assistant", "content": "..."}] 형태의 이력 리스트
@@ -62,13 +86,18 @@ def ask_gpt_with_history(history: list, new_question: str) -> str:
     :return: GPT 응답 텍스트
     """
     try:
-        messages = history + [{"role": "user", "content": new_question}]
+        # 관련 정책 조회 결과
+        lines = ["Here are the retrieved policies:\n"]
+        for idx, p in enumerate(related, start=1):
+            print(p)
+            lines.append(f"{idx}. Title: {p['title']}\n   Summary: {p['summary']}\n URL: {p['url']}\n")
+        related_messages = [{ "role": "user", "content": "\n".join(lines) }]
+        messages = SYSTEM_PREINSERT + related_messages + history + [{"role": "user", "content": new_question}]
 
         response = client.chat.completions.create(
-            model=GPT_3_5_MODEL,
+            model=GPT_4_MODEL,
             messages=messages,
-            temperature=0.7,
-            max_tokens=500
+            temperature = 0.4
         )
 
         return response.choices[0].message.content.strip()

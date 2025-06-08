@@ -1,15 +1,17 @@
 # crud.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from models import User, Question, QuestionDetail
+from data.models import User, Question, QuestionDetail
 from datetime import datetime
 from typing import Optional
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gpt.gpt_service import ask_gpt, ask_gpt_with_history
-from models import Policy
+from data.models import Policy
 from utils.embedding import get_embedding
+from utils.policy_search import search_policy
+
 import json
 
 engine = create_engine("sqlite:///./welfare.db", connect_args={"check_same_thread": False})
@@ -52,7 +54,9 @@ def create_question(db: Session,
         else:
             context = None
 
-    answer = ask_gpt(question, context)
+    policy = search_policy(db, question)
+    
+    answer = ask_gpt(question, policy['results'], context)
 
     # 질문 저장
     q = Question(
@@ -102,7 +106,8 @@ def create_follow_up(db: Session, token: str, question_id: int, question_text: s
         history.append({"role": "assistant", "content": detail.answer})
 
     # 3. GPT 호출
-    answer = ask_gpt_with_history(history, question_text)
+    policy = search_policy(db, prev_details[0].question)
+    answer = ask_gpt_with_history(history, policy['results'], question_text)
 
     # 4. 후속 질문 저장
     detail = QuestionDetail(

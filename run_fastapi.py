@@ -2,10 +2,28 @@
 
 import uvicorn
 from fastapi import FastAPI
-from data.routers import router as policy_router
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-app = FastAPI()
-app.include_router(policy_router)
+from data.models import Base
+from data.database import engine
+from data.routers import router
+
+class UTF8JSONResponse(JSONResponse):
+    media_type = "application/json; charset=utf-8"
+    
+app = FastAPI(default_response_class=UTF8JSONResponse)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router, prefix="/api")
+
+Base.metadata.create_all(bind=engine)
 
 if __name__ == "__main__":
-    uvicorn.run("run_fastapi:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("run_fastapi:app", host="0.0.0.0", port=6002, reload=True)
